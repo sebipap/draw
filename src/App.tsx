@@ -1,8 +1,9 @@
-import { MouseEvent, useEffect, useRef, useState } from "react";
+import { MouseEvent, useEffect, useState } from "react";
+import Canvas from "./components/canvas";
 
 type Coordinates = { x: number; y: number };
-type Point = Coordinates & { id: number };
-type Edge = { from: number; to: number };
+export type Point = Coordinates & { id: number };
+export type Edge = { from: number; to: number };
 
 function distance({ from, to }: { from: Coordinates; to: Coordinates }) {
   const minX = Math.min(from.x, to.x);
@@ -46,7 +47,7 @@ function isPointSnappingEdge({
   edge,
   points,
 }: {
-  point: Point;
+  point: Coordinates;
   edge: Edge;
   points: Point[];
 }) {
@@ -55,40 +56,99 @@ function isPointSnappingEdge({
 
   if (!pointA || !pointB) return;
 
-  return (
-    distancePointToLine(
-      point.x,
-      point.y,
-      pointA.x,
-      pointA.y,
-      pointB.x,
-      pointB.y
-    ) < 10
+  const minX = Math.min(pointA.x, pointB.x);
+  const maxX = Math.max(pointA.x, pointB.x);
+  const minY = Math.min(pointA.y, pointB.y);
+  const maxY = Math.max(pointA.y, pointB.y);
+
+  const distance = distancePointToLine(
+    point.x,
+    point.y,
+    pointA.x,
+    pointA.y,
+    pointB.x,
+    pointB.y
   );
+
+  return (
+    distance < 10 &&
+    point.x >= minX &&
+    point.x <= maxX &&
+    point.y >= minY &&
+    point.y <= maxY
+  );
+}
+
+function getSnappingPointToEdge({
+  point,
+  edge,
+  points,
+}: {
+  point: Coordinates;
+  edge: Edge;
+  points: Point[];
+}) {
+  const e1 = points.find((point) => point.id === edge.from);
+  const e2 = points.find((point) => point.id === edge.to);
+
+  if (!e1 || !e2) return { id: Math.random(), x: point.x, y: point.y };
+
+  const m = (e2.y - e1.y) / (e2.x - e1.x);
+
+  // f(x) = y = mx + b (edge line equation)
+  // b = y - mx
+
+  const b = e1.y - m * e1.x;
+
+  // normal line (perpendicular to edge)
+  // g(x) = y = nx + c
+  // c = y - nx
+  const n = -1 / m;
+
+  const c = point.y - n * point.x;
+
+  // now we'll intersect the lines
+  // f(x) = g(x)
+  // mx + b = nx + c
+  // x(m-n) = c-b
+  // x = (c-b) / (m-n)
+
+  const snapX = (c - b) / (m - n);
+
+  // and finally we get snapY by putting snapX in either of the lines
+  // snapY = f(snapX) = m * snapX + b
+
+  const snapY = m * snapX + b;
+
+  return {
+    id: Math.random(),
+    x: snapX,
+    y: snapY,
+  };
 }
 
 function App() {
   const [points, setPoints] = useState<Point[]>([
-    {
-      x: 243,
-      y: 672,
-      id: 1,
-    },
-    {
-      x: 614,
-      y: 227,
-      id: 2,
-    },
-    {
-      x: 819,
-      y: 667,
-      id: 3,
-    },
-    {
-      x: 1162,
-      y: 811,
-      id: 4,
-    },
+    // {
+    //   x: 243,
+    //   y: 672,
+    //   id: 1,
+    // },
+    // {
+    //   x: 614,
+    //   y: 227,
+    //   id: 2,
+    // },
+    // {
+    //   x: 819,
+    //   y: 667,
+    //   id: 3,
+    // },
+    // {
+    //   x: 1162,
+    //   y: 811,
+    //   id: 4,
+    // },
   ]);
 
   const [tool, setTool] = useState<"default" | "line">("line");
@@ -135,36 +195,47 @@ function App() {
     }
   }
 
+  function addPoint(point: Point) {
+    setPoints((prev) => [...prev, point]);
+  }
+
   const handleDrawLine = (event: MouseEvent<HTMLDivElement>) => {
-    const pointUnderClick = {
+    const pointUnderCursor = {
       x: event.clientX,
       y: event.clientY,
       id: Math.random(),
     };
 
     const snappingPoint = points.find((v) =>
-      arePointsSnapping({ from: v, to: pointUnderClick })
+      arePointsSnapping({ from: v, to: pointUnderCursor })
     );
 
     const snappingEdge = edges.find((edge) =>
-      isPointSnappingEdge({ point: pointUnderClick, edge, points })
+      isPointSnappingEdge({ point: pointUnderCursor, edge, points })
     );
-
-    if (snappingEdge) {
-      //
-    }
 
     if (snappingPoint) {
       edge({ from: currentPoint, to: snappingPoint });
       return;
     }
-    setPoints((prev) => [...prev, pointUnderClick]);
-    edge({ from: currentPoint, to: pointUnderClick });
+    if (snappingEdge) {
+      const snappingPointToEdge = getSnappingPointToEdge({
+        point: pointUnderCursor,
+        edge: snappingEdge,
+        points,
+      });
+      addPoint(snappingPointToEdge);
+      edge({ from: currentPoint, to: snappingPointToEdge });
+      return;
+    }
+
+    addPoint(pointUnderCursor);
+    edge({ from: currentPoint, to: pointUnderCursor });
   };
 
   const cursorPoint = { ...cursor, id: -1 };
 
-  const coloredVertices = points.map((point) => {
+  const coloredPoints = points.map((point) => {
     const isSnapping = arePointsSnapping({ from: point, to: cursor });
     const isCurrent = currentPoint && point.id === currentPoint.id;
 
@@ -174,9 +245,15 @@ function App() {
     };
   });
 
-  const snappingPoint = points.find((p) =>
+  const snappingPointToPoint = points.find((p) =>
     arePointsSnapping({ from: p, to: cursorPoint })
   );
+
+  const snappingPointToEdge = edges
+    .filter((edge) => isPointSnappingEdge({ edge, point: cursor, points }))
+    .map((edge) => getSnappingPointToEdge({ point: cursor, edge, points }))[0]; // TODO: set the one that's closer
+
+  const snappingPoint = snappingPointToPoint || snappingPointToEdge; // TODO: set the one that's closer
 
   const edgesWithCursor = currentPoint
     ? [
@@ -215,95 +292,15 @@ function App() {
       </div>
       <Canvas
         points={[
-          ...coloredVertices,
+          ...coloredPoints,
           ...(snappingPoint ? [] : [{ ...cursorPoint, color: "yellow" }]),
+          ...(snappingPointToEdge
+            ? [{ ...snappingPointToEdge, color: "red" }]
+            : []),
         ]}
         edges={coloredEdges}
       />
     </div>
-  );
-}
-
-type ColoredPoint = Point & { color: string };
-type ColoredEdge = Edge & { color: string };
-
-function Canvas({
-  points,
-  edges,
-}: {
-  points: ColoredPoint[];
-  edges: ColoredEdge[];
-}) {
-  console.log(points);
-
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  function clearCanvas() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.reset();
-  }
-
-  function getCanvasContext() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    return canvas.getContext("2d");
-  }
-
-  function drawPoint({ x, y, color }: { x: number; y: number; color: string }) {
-    const ctx = getCanvasContext();
-    if (!ctx) return;
-
-    ctx.fillStyle = color;
-    ctx.fillRect(x - 12, y - 12, 6, 6);
-  }
-
-  function drawEdge(edge: ColoredEdge) {
-    const { from, to } = edge;
-
-    const fromPoint = points.find((point) => point.id === from);
-    const toPoint = points.find((point) => point.id === to);
-
-    if (!fromPoint || !toPoint) return;
-
-    const ctx = getCanvasContext();
-    if (!ctx) return;
-
-    ctx.strokeStyle = edge.color;
-
-    ctx.beginPath();
-    ctx.moveTo(fromPoint.x - 10, fromPoint.y - 10);
-    ctx.lineTo(toPoint.x - 10, toPoint.y - 10);
-    ctx.stroke();
-  }
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }, []);
-
-  clearCanvas();
-  for (const point of points) {
-    drawPoint(point);
-  }
-  for (const edge of edges) {
-    drawEdge(edge);
-  }
-
-  return (
-    <canvas
-      style={{
-        backgroundColor: "black",
-      }}
-      ref={canvasRef}
-    ></canvas>
   );
 }
 
