@@ -160,13 +160,13 @@ function App() {
 
   const [currentPoint, setCurrentPoint] = useState<Point | undefined>();
 
-  useEffect(() => {
-    setEdges([
-      { from: 1, to: 2 },
-      { from: 2, to: 3 },
-      { from: 3, to: 1 },
-    ]);
-  }, []);
+  // useEffect(() => {
+  //   setEdges([
+  //     { from: 1, to: 2 },
+  //     { from: 2, to: 3 },
+  //     { from: 3, to: 1 },
+  //   ]);
+  // }, []);
 
   const handleMouseMove = ({
     clientX,
@@ -271,6 +271,91 @@ function App() {
       ? "orange"
       : "white",
   }));
+
+  function haceBucle(camino: Edge[]) {
+    if (camino.length === 0) return false;
+    const primero = camino[0];
+    const ultimo = camino[camino.length - 1];
+
+    return ultimo.to === primero.from || ultimo.from === primero.to;
+  }
+
+  function obtenerCaminos(
+    aristas: Edge[],
+    arista: Edge,
+    recorrido: Edge[]
+  ): Edge[][] {
+    const actual = arista;
+
+    //   {
+    //     "aristas": [
+    //         {
+    //             "from": 0.42,
+    //             "to": 0.33
+    //         },
+    //         {
+    //             "from": 0.33,
+    //             "to": 0.48
+    //         },
+    //         {
+    //             "from": 0.48,
+    //             "to": 0.62
+    //         },
+    //         {
+    //             "from": 0.62,
+    //             "to": 0.42
+    //         }
+    //     ],
+    //     "actual": {
+    //         "from": 0.42,
+    //         "to": 0.33
+    //     },
+    //     "siguientes": []
+    // }
+
+    const siguientes = aristas.filter((x) => {
+      const esSiguiente =
+        x.from === actual.to ||
+        x.to === actual.from ||
+        x.from === actual.from ||
+        x.to === actual.to;
+      const yaLoRecorri = recorrido.some(
+        (aa) => aa.from === x.from && aa.to === x.to
+      );
+
+      console.log({
+        x,
+        esSiguiente,
+        yaLoRecorri,
+        [`x.from (${x.from}) === actual.to (${actual.to})`]:
+          x.from === actual.to,
+        [`x.to (${x.to}) === actual.from (${actual.from})`]:
+          x.to === actual.from,
+        actual,
+      });
+
+      return esSiguiente && !yaLoRecorri;
+    });
+
+    console.log({ aristas, actual, siguientes });
+
+    const acc: Edge[][] = [recorrido];
+
+    for (const arista of siguientes) {
+      const nuevoRecorrido = [...recorrido, arista];
+      const nuevosCaminos = obtenerCaminos(aristas, arista, nuevoRecorrido);
+      console.log({ aristas, arista, nuevoRecorrido, nuevosCaminos });
+      acc.concat(...nuevosCaminos);
+    }
+    console.log({ acc });
+    return acc;
+  }
+
+  const faces = obtenerCaminos(edges, edges[0], []).filter((camino) =>
+    haceBucle(camino)
+  );
+
+  console.log({ faces });
 
   return (
     <div onMouseMove={handleMouseMove} onClick={handleClick}>
