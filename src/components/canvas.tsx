@@ -5,6 +5,8 @@ import { edgesToPoints } from "../lib/getFaces";
 type ColoredPoint = Point & { color: string };
 type ColoredEdge = Edge & { color: string };
 
+const OFFSET = 10;
+
 export default function Canvas({
   points,
   edges,
@@ -54,8 +56,8 @@ export default function Canvas({
     ctx.strokeStyle = edge.color;
 
     ctx.beginPath();
-    ctx.moveTo(fromPoint.x - 10, fromPoint.y - 10);
-    ctx.lineTo(toPoint.x - 10, toPoint.y - 10);
+    ctx.moveTo(fromPoint.x - 10, fromPoint.y - OFFSET);
+    ctx.lineTo(toPoint.x - 10, toPoint.y - OFFSET);
     ctx.stroke();
   }
 
@@ -63,14 +65,17 @@ export default function Canvas({
     const ctx = getCanvasContext();
     if (!ctx) return;
 
+    ctx.strokeStyle = "#222";
+    ctx.fillStyle = "#222";
+
     const coords = edgesToPoints(face)
       .map((id) => points.find((point) => point.id === id))
       .filter((x) => !!x);
 
     ctx.beginPath();
-    ctx.moveTo(coords[0].x, coords[0].y);
+    ctx.moveTo(coords[0].x - OFFSET, coords[0].y - OFFSET);
     for (const coord of coords) {
-      ctx.lineTo(coord.x, coord.y);
+      ctx.lineTo(coord.x - OFFSET, coord.y - OFFSET);
     }
     ctx.closePath();
     ctx.fill();
