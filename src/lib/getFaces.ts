@@ -1,7 +1,4 @@
-type Edge = {
-	from: string
-	to: string
-}
+import { Edge } from "../App";
 
 function esCara(camino: Edge[]) {
 	if (camino.length === 0) return false;
@@ -69,17 +66,31 @@ function obtenerCaminos(
 
 	return acc;
 }
-const edges = [{ from: 'b', to: 'a' }, { from: 'c', to: 'b' }, { from: 'c', to: 'a' }, { from: 'c', to: 'd' }]
+// const edges = [{ from: 'b', to: 'a' }, { from: 'c', to: 'b' }, { from: 'c', to: 'a' }, { from: 'c', to: 'd' }]
 
-const caminos = obtenerCaminos(edges, edges[0], [])
 
-function edgeToString(edge: Edge) {
-	return `${edge.from.toUpperCase()}${edge.to.toUpperCase()}`
+
+// function edgeToString(edge: Edge) {
+// 	return `${edge.from.toUpperCase()}${edge.to.toUpperCase()}`
+// }
+
+
+export function edgesToPoints(edges: Edge[]) {
+	const points1 = edges.flatMap(({ from, to }) => [from, to])
+
+	// points1 has duplicates
+	const points2 = [...new Set(points1)]
+
+	return points2
 }
 
-const faces = caminos.filter((camino) =>
-	esCara(camino)
-)
+export default function getFaces(edges: Edge[], edge: Edge) {
+	const caminos = obtenerCaminos(edges, edge, [])
 
+	const faces = caminos.filter((camino) =>
+		esCara(camino)
+	)
 
-console.log({ caminos: caminos.map(camino => camino.map(edgeToString)), faces: faces.map(camino => camino.map(edgeToString)) }, { depth: null })
+	return faces
+}
+

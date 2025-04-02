@@ -1,5 +1,6 @@
-import { MouseEvent, useEffect, useState } from "react";
+import { MouseEvent, useState } from "react";
 import Canvas from "./components/canvas";
+import getFaces from "./lib/getFaces";
 
 type Coordinates = { x: number; y: number };
 export type Point = Coordinates & { id: number };
@@ -128,35 +129,15 @@ function getSnappingPointToEdge({
 }
 
 function App() {
-  const [points, setPoints] = useState<Point[]>([
-    // {
-    //   x: 243,
-    //   y: 672,
-    //   id: 1,
-    // },
-    // {
-    //   x: 614,
-    //   y: 227,
-    //   id: 2,
-    // },
-    // {
-    //   x: 819,
-    //   y: 667,
-    //   id: 3,
-    // },
-    // {
-    //   x: 1162,
-    //   y: 811,
-    //   id: 4,
-    // },
-  ]);
-
   const [tool, setTool] = useState<"default" | "line">("line");
-  const [edges, setEdges] = useState<Edge[]>([]);
+
   const [cursor, setCursor] = useState<Coordinates>({
     x: 0,
     y: 0,
   });
+  const [points, setPoints] = useState<Point[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [faces, setFaces] = useState<Edge[][]>([]);
 
   const [currentPoint, setCurrentPoint] = useState<Point | undefined>();
 
@@ -195,6 +176,11 @@ function App() {
     }
   }
 
+  function face(edge: Edge) {
+    const faces = getFaces(edges, edge);
+    setFaces((f) => [...f, ...faces]);
+  }
+
   function addPoint(point: Point) {
     setPoints((prev) => [...prev, point]);
   }
@@ -216,6 +202,7 @@ function App() {
 
     if (snappingPoint) {
       edge({ from: currentPoint, to: snappingPoint });
+      if (currentPoint) face({ from: currentPoint.id, to: snappingPoint.id });
       return;
     }
     if (snappingEdge) {
@@ -226,11 +213,15 @@ function App() {
       });
       addPoint(snappingPointToEdge);
       edge({ from: currentPoint, to: snappingPointToEdge });
+      if (currentPoint) {
+        face({ from: currentPoint.id, to: snappingPointToEdge.id });
+      }
       return;
     }
 
     addPoint(pointUnderCursor);
     edge({ from: currentPoint, to: pointUnderCursor });
+    if (currentPoint) face({ from: currentPoint.id, to: pointUnderCursor.id });
   };
 
   const cursorPoint = { ...cursor, id: -1 };
@@ -272,91 +263,6 @@ function App() {
       : "white",
   }));
 
-  function haceBucle(camino: Edge[]) {
-    if (camino.length === 0) return false;
-    const primero = camino[0];
-    const ultimo = camino[camino.length - 1];
-
-    return ultimo.to === primero.from || ultimo.from === primero.to;
-  }
-
-  function obtenerCaminos(
-    aristas: Edge[],
-    arista: Edge,
-    recorrido: Edge[]
-  ): Edge[][] {
-    const actual = arista;
-
-    //   {
-    //     "aristas": [
-    //         {
-    //             "from": 0.42,
-    //             "to": 0.33
-    //         },
-    //         {
-    //             "from": 0.33,
-    //             "to": 0.48
-    //         },
-    //         {
-    //             "from": 0.48,
-    //             "to": 0.62
-    //         },
-    //         {
-    //             "from": 0.62,
-    //             "to": 0.42
-    //         }
-    //     ],
-    //     "actual": {
-    //         "from": 0.42,
-    //         "to": 0.33
-    //     },
-    //     "siguientes": []
-    // }
-
-    const siguientes = aristas.filter((x) => {
-      const esSiguiente =
-        x.from === actual.to ||
-        x.to === actual.from ||
-        x.from === actual.from ||
-        x.to === actual.to;
-      const yaLoRecorri = recorrido.some(
-        (aa) => aa.from === x.from && aa.to === x.to
-      );
-
-      console.log({
-        x,
-        esSiguiente,
-        yaLoRecorri,
-        [`x.from (${x.from}) === actual.to (${actual.to})`]:
-          x.from === actual.to,
-        [`x.to (${x.to}) === actual.from (${actual.from})`]:
-          x.to === actual.from,
-        actual,
-      });
-
-      return esSiguiente && !yaLoRecorri;
-    });
-
-    console.log({ aristas, actual, siguientes });
-
-    const acc: Edge[][] = [recorrido];
-
-    for (const arista of siguientes) {
-      const nuevoRecorrido = [...recorrido, arista];
-      const nuevosCaminos = obtenerCaminos(aristas, arista, nuevoRecorrido);
-      console.log({ aristas, arista, nuevoRecorrido, nuevosCaminos });
-      acc.concat(...nuevosCaminos);
-    }
-    console.log({ acc });
-    return acc;
-  }
-
-  const faces = obtenerCaminos(edges, edges[0], []).filter((camino) =>
-    haceBucle(camino)
-  );
-
-  console.log({ faces });
-
   return (
     <div onMouseMove={handleMouseMove} onClick={handleClick}>
       <div
@@ -384,6 +290,7 @@ function App() {
             : []),
         ]}
         edges={coloredEdges}
+        faces={faces}
       />
     </div>
   );

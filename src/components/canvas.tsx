@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Edge, Point } from "../App";
+import { edgesToPoints } from "../lib/getFaces";
 
 type ColoredPoint = Point & { color: string };
 type ColoredEdge = Edge & { color: string };
@@ -7,9 +8,11 @@ type ColoredEdge = Edge & { color: string };
 export default function Canvas({
   points,
   edges,
+  faces,
 }: {
   points: ColoredPoint[];
   edges: ColoredEdge[];
+  faces: Edge[][];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -56,6 +59,23 @@ export default function Canvas({
     ctx.stroke();
   }
 
+  function drawFace(face: Edge[]) {
+    const ctx = getCanvasContext();
+    if (!ctx) return;
+
+    const coords = edgesToPoints(face)
+      .map((id) => points.find((point) => point.id === id))
+      .filter((x) => !!x);
+
+    ctx.beginPath();
+    ctx.moveTo(coords[0].x, coords[0].y);
+    for (const coord of coords) {
+      ctx.lineTo(coord.x, coord.y);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -70,6 +90,10 @@ export default function Canvas({
   }
   for (const edge of edges) {
     drawEdge(edge);
+  }
+
+  for (const face of faces) {
+    drawFace(face);
   }
 
   return (
