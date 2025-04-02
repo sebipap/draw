@@ -3,24 +3,36 @@ type Edge = {
 	to: string
 }
 
-function haceBucle(camino: Edge[]) {
+function esCara(camino: Edge[]) {
 	if (camino.length === 0) return false;
 	const primero = camino[0];
 	const ultimo = camino[camino.length - 1];
 
-	return ultimo.to === primero.from || ultimo.from === primero.to;
+	const haceBucle = ultimo.to === primero.from || ultimo.from === primero.to;
+
+	console.log('esCara', { camino, length: camino.length, haceBucle, noHayRepetidos: noHayRepetidos(camino), condition: haceBucle && camino.length >= 3 && noHayRepetidos(camino) })
+
+	return haceBucle && camino.length >= 3 && noHayRepetidos(camino)
 }
 
+
+
+function noHayRepetidos(camino: Edge[]) {
+	const vertices = camino.flatMap(({ from, to }) => [from, to])
+
+	return vertices.every(vertice => {
+		const count = vertices.filter((v) => vertice === v).length
+
+		return count === 2
+	})
+
+}
 function obtenerCaminos(
 	aristas: Edge[],
 	arista: Edge,
 	camino: Edge[]
 ): Edge[][] {
-	console.log('obtenerCaminos')
-	console.log({ aristas, arista, camino })
-
 	const actual = arista;
-
 
 	const siguientes = aristas.filter(
 		(x) => {
@@ -36,21 +48,22 @@ function obtenerCaminos(
 		}
 	);
 
-	console.log({ siguientes })
-
 	if (siguientes.length == 0) {
 		return [[...camino, arista]]
 	}
-
-	// console.dir({ aristas, actual, siguientes }, { depth: null })
 
 	const acc: Edge[][] = [];
 
 	for (const siguiente of siguientes) {
 
 		const nuevoCamino = [...camino, arista]
-		const nuevosCaminos = obtenerCaminos(aristas, siguiente, nuevoCamino);
 
+		if (esCara(nuevoCamino)) {
+			acc.push(nuevoCamino)
+			continue
+		}
+
+		const nuevosCaminos = obtenerCaminos(aristas, siguiente, nuevoCamino);
 		acc.push(...nuevosCaminos);
 	}
 
@@ -58,9 +71,15 @@ function obtenerCaminos(
 }
 const edges = [{ from: 'b', to: 'a' }, { from: 'c', to: 'b' }, { from: 'c', to: 'a' }, { from: 'c', to: 'd' }]
 
-const faces = edges.flatMap(edge => obtenerCaminos(edges, edge, []).filter((camino) =>
-	haceBucle(camino)
-))
+const caminos = obtenerCaminos(edges, edges[0], [])
+
+function edgeToString(edge: Edge) {
+	return `${edge.from.toUpperCase()}${edge.to.toUpperCase()}`
+}
+
+const faces = caminos.filter((camino) =>
+	esCara(camino)
+)
 
 
-console.dir({ faces }, { depth: null })
+console.log({ caminos: caminos.map(camino => camino.map(edgeToString)), faces: faces.map(camino => camino.map(edgeToString)) }, { depth: null })
