@@ -136,6 +136,7 @@ function App() {
   const [points, setPoints] = useState<Point[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [faces, setFaces] = useState<Edge[][]>([]);
+  const tool = "line";
 
   const [currentPoint, setCurrentPoint] = useState<Point | undefined>();
 
