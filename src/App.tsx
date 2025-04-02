@@ -129,8 +129,6 @@ function getSnappingPointToEdge({
 }
 
 function App() {
-  const [tool, setTool] = useState<"default" | "line">("line");
-
   const [cursor, setCursor] = useState<Coordinates>({
     x: 0,
     y: 0,
@@ -265,22 +263,6 @@ function App() {
 
   return (
     <div onMouseMove={handleMouseMove} onClick={handleClick}>
-      <div
-        style={{
-          position: "fixed",
-          background: "white",
-        }}
-      >
-        {tool}
-        <button
-          onClick={(event) => {
-            setTool("line");
-            event.stopPropagation();
-          }}
-        >
-          line
-        </button>
-      </div>
       <Canvas
         points={[
           ...coloredPoints,
