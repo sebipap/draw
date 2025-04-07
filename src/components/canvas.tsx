@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Edge, Point } from "../App";
+import { Edge, Face, Point } from "../App";
 import { edgesToPoints } from "../lib/getFaces";
 
 type ColoredPoint = Point & { color: string };
@@ -14,7 +14,7 @@ export default function Canvas({
 }: {
   points: ColoredPoint[];
   edges: ColoredEdge[];
-  faces: Edge[][];
+  faces: Face[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -61,14 +61,16 @@ export default function Canvas({
     ctx.stroke();
   }
 
-  function drawFace(face: Edge[]) {
+  function drawFace(face: Face) {
     const ctx = getCanvasContext();
     if (!ctx) return;
 
-    ctx.strokeStyle = "#222";
-    ctx.fillStyle = "#222";
+    const randomColor = "#" + Math.floor(face.id * 16777215).toString(16);
 
-    const coords = edgesToPoints(face)
+    ctx.strokeStyle = randomColor;
+    ctx.fillStyle = randomColor;
+
+    const coords = edgesToPoints(face.edges)
       .map((id) => points.find((point) => point.id === id))
       .filter((x) => !!x);
 

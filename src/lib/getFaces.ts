@@ -6,9 +6,6 @@ function esCara(camino: Edge[]) {
 	const ultimo = camino[camino.length - 1];
 
 	const haceBucle = ultimo.to === primero.from || ultimo.from === primero.to;
-
-	console.log('esCara', { camino, length: camino.length, haceBucle, noHayRepetidos: noHayRepetidos(camino), condition: haceBucle && camino.length >= 3 && noHayRepetidos(camino) })
-
 	return haceBucle && camino.length >= 3 && noHayRepetidos(camino)
 }
 
@@ -27,8 +24,10 @@ function noHayRepetidos(camino: Edge[]) {
 function obtenerCaminos(
 	aristas: Edge[],
 	arista: Edge,
-	camino: Edge[]
+	camino: Edge[],
+	depth: number
 ): Edge[][] {
+	console.count('obtenerCaminos')
 	const actual = arista;
 
 	const siguientes = aristas.filter(
@@ -45,7 +44,7 @@ function obtenerCaminos(
 		}
 	);
 
-	if (siguientes.length == 0) {
+	if (siguientes.length == 0 || depth > 1000) {
 		return [[...camino, arista]]
 	}
 
@@ -57,11 +56,10 @@ function obtenerCaminos(
 
 		if (esCara(nuevoCamino)) {
 			acc.push(nuevoCamino)
-			continue
+		} else {
+			const nuevosCaminos = obtenerCaminos(aristas, siguiente, nuevoCamino, depth + 1);
+			acc.push(...nuevosCaminos);
 		}
-
-		const nuevosCaminos = obtenerCaminos(aristas, siguiente, nuevoCamino);
-		acc.push(...nuevosCaminos);
 	}
 
 	return acc;
@@ -85,7 +83,7 @@ export function edgesToPoints(edges: Edge[]) {
 }
 
 export default function getFaces(edges: Edge[], edge: Edge) {
-	const caminos = obtenerCaminos(edges, edge, [])
+	const caminos = obtenerCaminos(edges, edge, [], 0)
 
 	const faces = caminos.filter((camino) =>
 		esCara(camino)

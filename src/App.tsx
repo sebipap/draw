@@ -5,6 +5,10 @@ import getFaces from "./lib/getFaces";
 type Coordinates = { x: number; y: number };
 export type Point = Coordinates & { id: number };
 export type Edge = { from: number; to: number };
+export type Face = {
+  edges: Edge[];
+  id: number;
+};
 
 function distance({ from, to }: { from: Coordinates; to: Coordinates }) {
   const minX = Math.min(from.x, to.x);
@@ -135,7 +139,7 @@ function App() {
   });
   const [points, setPoints] = useState<Point[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [faces, setFaces] = useState<Edge[][]>([]);
+  const [faces, setFaces] = useState<Face[]>([]);
   const tool = "line";
 
   const [currentPoint, setCurrentPoint] = useState<Point | undefined>();
@@ -166,7 +170,7 @@ function App() {
     }
   };
 
-  function edge({ from, to }: { from?: Point; to: Point }) {
+  function drawCurrentEdge({ from, to }: { from?: Point; to: Point }) {
     if (from) {
       setEdges((prev) => [...prev, { from: from.id, to: to.id }]);
       setCurrentPoint(undefined);
@@ -175,9 +179,32 @@ function App() {
     }
   }
 
+  function addEdge(edge: Edge) {
+    setEdges((prev) => [...prev, edge]);
+  }
+
+  function deleteEdge({ from, to }: Edge) {
+    setEdges((prev) =>
+      prev.filter((edge) => edge.from !== from || edge.to !== to)
+    );
+  }
+
   function face(edge: Edge) {
     const faces = getFaces(edges, edge);
-    setFaces((f) => [...f, ...faces]);
+    console.log({ faces });
+    const smallestFace = faces.sort((a, b) => a.length - b.length)[0];
+    const id = Math.random();
+    if (!smallestFace) return;
+
+    setFaces((prev) => {
+      return [
+        ...prev,
+        {
+          edges: smallestFace,
+          id,
+        },
+      ];
+    });
   }
 
   function addPoint(point: Point) {
@@ -200,7 +227,7 @@ function App() {
     );
 
     if (snappingPoint) {
-      edge({ from: currentPoint, to: snappingPoint });
+      drawCurrentEdge({ from: currentPoint, to: snappingPoint });
       if (currentPoint) face({ from: currentPoint.id, to: snappingPoint.id });
       return;
     }
@@ -211,7 +238,19 @@ function App() {
         points,
       });
       addPoint(snappingPointToEdge);
-      edge({ from: currentPoint, to: snappingPointToEdge });
+      drawCurrentEdge({ from: currentPoint, to: snappingPointToEdge });
+      // tambien vamos a partir la arista original en el punto de snapping
+      // para eso vamos a borrar la arista original y crear dos en su lugar
+      deleteEdge(snappingEdge);
+      addEdge({
+        from: snappingEdge.from,
+        to: snappingPointToEdge.id,
+      });
+      addEdge({
+        from: snappingPointToEdge.id,
+        to: snappingEdge.to,
+      });
+
       if (currentPoint) {
         face({ from: currentPoint.id, to: snappingPointToEdge.id });
       }
@@ -219,7 +258,7 @@ function App() {
     }
 
     addPoint(pointUnderCursor);
-    edge({ from: currentPoint, to: pointUnderCursor });
+    drawCurrentEdge({ from: currentPoint, to: pointUnderCursor });
     if (currentPoint) face({ from: currentPoint.id, to: pointUnderCursor.id });
   };
 
