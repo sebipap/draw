@@ -140,7 +140,7 @@ function App() {
     setPoints((prev) => [...prev, point]);
   }
 
-  const handleDrawLine = (event: MouseEvent<HTMLDivElement>) => {
+  const handleDrawLine = () => {
     const pointUnderCursor = {
       ...cursor,
       id: getId(),
